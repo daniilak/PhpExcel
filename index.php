@@ -20,13 +20,15 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-
+// $ex-> setData ();
+$ex-> getData ();
+echo 'ok';
 
 class ex
 {
     protected $objPHPExcel;
     protected $data;
-    protected $groups = ['row' => 0];
+    protected $groups = [];
     protected $lessons = [];
     protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -39,15 +41,28 @@ class ex
         'Суббота' => ['from' => 0, 'to' => 0],
     ];
 
+    protected $file;
     public function __construct($file)
     {
-        $this->objPHPExcel = PHPExcel_IOFactory::load($file);
-        
+        $this->file = $file;
+    }
+
+    public function setData () {
+        $this->objPHPExcel = PHPExcel_IOFactory::load($this->file);
         foreach ($this->objPHPExcel->getWorksheetIterator() as $worksheet) {
             $this->excel1($worksheet);
         }
-        $this->  save ();
+        $this->save ();
     }
+
+    public function getData () {
+        $this->objPHPExcel = PHPExcel_IOFactory::load($this->file);
+        foreach ($this->objPHPExcel->getWorksheetIterator() as $worksheet) {
+            $this->excel2($worksheet);
+        }
+        $this->load ();
+    }
+
     public function save () {
         $tmp = $this->groups['index'];
         foreach ($tmp as &$t) {
@@ -62,7 +77,6 @@ class ex
         $this->data = json_decode(file_get_contents('data.json'), true);
         echo 'ok';
     }
-
     
     /*
     * First method for saving first data
@@ -73,23 +87,24 @@ class ex
 
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
-
-                $cell = $worksheet->getCellByColumnAndRow($column, $row);
-                $value = trim($cell->getCalculatedValue());
-                foreach ($worksheet->getMergeCells() as $mergedCells) {
-                    if ($cell->isInRange($mergedCells)) {
-                        $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
-                        break;
+                if ($row == 1 || $column < 2 ) {
+                    $cell = $worksheet->getCellByColumnAndRow($column, $row);
+                    $value = trim($cell->getCalculatedValue());
+                    foreach ($worksheet->getMergeCells() as $mergedCells) {
+                        if ($cell->isInRange($mergedCells)) {
+                            $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
+                            break;
+                        }
                     }
-                }
 
-                if (!is_null($value) && $value != "") {
-                    $value = trim($value);
-                    if ($this->groups['row'] == 0 || $this->groups['row'] == $row) {
-                        $this->groups($value, $column, $row);
-                    }
-                    if (intval($this->groups['row']) < $row && $column < 2) {
-                        $this->dates($value, $row);
+                    if (!is_null($value) && $value != "") {
+                        $value = trim($value);
+                        if ($row == 1) {
+                            $this->groups($value, $column);
+                        } 
+                        if ($column < 2 ) {
+                            $this->dates($value, $row);
+                        }
                     }
                 }
             }
@@ -129,21 +144,23 @@ class ex
     {
         $days = $this->days;
         if (in_array($value, $this->daysName)) {
-            $days[$value]['from'] = (isset($days[$value]['from'])) ? $days[$value]['from'] : $row;
+            if ($days[$value]['from'] == 0) {
+                $days[$value]['from'] = $row;
+            }
             $days[$value]['to'] = $row;
         }
         if (in_array($value, $this->dates)) {
             foreach ($days as $key => $day) {
-                if ($day["from"] <= $row && $row <= $day["to"]) {
-                    if (isset($days[$key][$value])) {
-                        $days[$key]['data'][$value]['from'] = (isset($days[$key]['data'][$value]['from'])) ? $days[$key]['data'][$value]['from'] : $row;
-                        $days[$key]['data'][$value]['to'] = $row;
-                    } else {
+                $a = ($day['to'] == 0) ? 9999 : $day['to'];
+                if ($day['from'] <= $row && $row <= $a) {
+                    if (!isset($days[$key]['data'][$value])) {
                         $days[$key]['data'][$value] = [];
-                        $days[$key]['data'][$value]['from'] = (isset($days[$key]['data'][$value]['from'])) ? $days[$key]['data'][$value]['from'] : $row;
+                        if (!isset($days[$key]['data'][$value]['from'])) {
+                            $days[$key]['data'][$value]['from'] = $row;
+                        }
+                    } else {
                         $days[$key]['data'][$value]['to'] = $row;
                     }
-                    // break; ??
                 }
             }
         }
@@ -152,92 +169,44 @@ class ex
     public function lessons($value, $column, $row)
     {
         // var_dump('value: ' . trim($value) . ', column: ' . $column . ', row: ' . $row);
-        $groups  = $this->groups;
-        $days    = $this->days;
         $lessons = $this->lessons;
-        // foreach ($groups["index"] as $m => $group) {
-        //     if ($key != '' && $group["from"] <= $column && $column <= $group["to"]) {
-        //         foreach ($days as $n => $day) {
-        //             if ($day['from'] <= $row && $row <= $day['to']) {
-        //                 foreach ($day as $k => $date) {
-        //                     if ($key != 'from' && $key != 'to') {
-        //                         if ($date['from'] <= $row && $row <= $date['to']) {
-
-        //                             if (!isset($groups["index"][$m]['lesson'])) { 
-        //                                 $groups["index"][$m]['lesson'] = $days;
-        //                             }
-        //                             foreach ($day as $o => $date) {
-        //                                 $groups["index"][$m]['lesson'][] = $value . ', column: ' . $column . ', row: ' . $row;
-        //                             }
-                                    
-        //                         }
-        //                     }
-        //                 }
-        //             }
-                    
-        //         }                    
-        //     }
-        // }
+        $data = $this->data;
+        foreach ($data as $k => $groups) {
+            if ($groups["from"] <= $column && $column <= $groups["to"]) {
+                foreach($groups as $m => $days) {
+                    if ($days["from"] <= $row && $row <= $days["to"]) {
+                        foreach($days as $n=> $date) {
+                            if ($date["from"] <= $row && $row <= $date["to"]) {
+                                if (isset($data[$k][$m][$n]['index'])) {
+                                    $data[$k][$m][$n]['index'] []= $value;
+                                } else {
+                                    $data[$k][$m][$n]['index'] = [];
+                                    $data[$k][$m][$n]['index'] []= $value;
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
         $this->lessons = $lessons;
+        $this->data = $data;
         $this->groups = $groups;
     }
 
-    public function groups($value, $column, $row)
+    public function groups($value, $column)
     {
         $groups = $this->groups;
-        if ($groups['row'] != 0 && $groups['row'] != $row) {
-            return false;
-        }
-        $value = trim($value);
-        $groups['index'][$value]['value'] = (isset($groups['index'][$value])) ? $groups['index'][$value]['value'] : $value;
-        $groups['index'][$value]['from'] = (isset($groups['index'][$value]['from'])) ? $groups['index'][$value]['from'] : $column;
-        $groups['index'][$value]['to'] = $column;
-        if ($groups['row'] == 0) {
-            $groups['row'] = $row;
+        if (!isset($groups['index'][$value])) {
+            $groups['index'][$value] = [];
+            $groups['index'][$value]['from'] = $column;
+        } else {
+            $groups['index'][$value]['to'] = $column;
         }
         $this->groups = $groups;
-
         return true;
     }
 }
-
-die();
-
-/*
-* Get html table with PHPExcel
-*/
-$objPHPExcel = PHPExcel_IOFactory::load("20.xls");
-$string = '';
-foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
-    $string .= '<table border="1">';
-    $columns_name_line = 0;
-    $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
-
-    $rows_count = $worksheet->getHighestRow();
-    for ($row = $columns_name_line + 1; $row <= $rows_count; $row++) {
-        $string .= '<tr>';
-        // Строка со значениями всех столбцов в строке листа Excel
-        $value_str = "";
-        // Перебираем столбцы листа Excel
-        for ($column = 0; $column < $columns_count; $column++) {
-            $merged_value = "";
-            // Ячейка листа Excel
-            $cell = $worksheet->getCellByColumnAndRow($column, $row);
-
-            // Перебираем массив объединенных ячеек листа Excel
-            foreach ($worksheet->getMergeCells() as $mergedCells) {
-                // Если текущая ячейка - объединенная,
-                if ($cell->isInRange($mergedCells)) {
-                    // то вычисляем значение первой объединенной ячейки, и используем её в качестве значения
-                    // текущей ячейки
-                    $merged_value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
-                    break;
-                }
-            }
-            $string .= '<td>' . (strlen($merged_value) == 0 ? $cell->getCalculatedValue() : $merged_value) . '</td>';
-        }
-        $string .= '</tr>';
-    }
-    $string .= '</table>';
-}
-echo $string;
