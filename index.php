@@ -26,7 +26,7 @@ echo 'ok';
 
 class ex
 {
-    protected $objPHPExcel;
+    protected $worksheet;
     protected $data;
     protected $groups = [];
     protected $lessons = [];
@@ -48,17 +48,21 @@ class ex
     }
 
     public function setData () {
-        $this->objPHPExcel = PHPExcel_IOFactory::load($this->file);
-        foreach ($this->objPHPExcel->getWorksheetIterator() as $worksheet) {
-            $this->excel1($worksheet);
+        $objPHPExcel = PHPExcel_IOFactory::load($this->file);
+        foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
+            $this->worksheet = $worksheet;
+            $this->excel1();
+            break;
         }
         $this->save ();
     }
 
     public function getData () {
-        $this->objPHPExcel = PHPExcel_IOFactory::load($this->file);
-        foreach ($this->objPHPExcel->getWorksheetIterator() as $worksheet) {
-            $this->excel2($worksheet);
+        $objPHPExcel = PHPExcel_IOFactory::load($this->file);
+        foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
+            $this->worksheet = $worksheet;
+            $this->excel2();
+            break;
         }
         $this->load ();
     }
@@ -81,10 +85,10 @@ class ex
     /*
     * First method for saving first data
     */
-    public function excel1($worksheet)
+    public function excel1()
     {
+        $worksheet = $this->worksheet;
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
-
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
                 if ($row == 1 || $column < 2 ) {
@@ -114,8 +118,9 @@ class ex
     /*
     * Second method with load first data
     */
-    public function excel2($worksheet)
+    public function excel2()
     {
+        $worksheet = $this->worksheet;
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
 
         for ($row = 2; $row <= $worksheet->getHighestRow(); $row++) {
