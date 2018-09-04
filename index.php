@@ -58,13 +58,14 @@ class ex
     }
 
     public function getData () {
+        $this->load ();
         $objPHPExcel = PHPExcel_IOFactory::load($this->file);
         foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
             $this->worksheet = $worksheet;
             $this->excel2();
             break;
         }
-        $this->load ();
+        file_put_contents('dataNew.json', json_encode($this->data));
     }
 
     public function save () {
@@ -79,7 +80,6 @@ class ex
 
     public function load () {
         $this->data = json_decode(file_get_contents('data.json'), true);
-        echo 'ok';
     }
     
     /*
@@ -178,15 +178,15 @@ class ex
         $data = $this->data;
         foreach ($data as $k => $groups) {
             if ($groups["from"] <= $column && $column <= $groups["to"]) {
-                foreach($groups as $m => $days) {
+                foreach($groups['days'] as $m => $days) {
                     if ($days["from"] <= $row && $row <= $days["to"]) {
-                        foreach($days as $n=> $date) {
+                        foreach($days['data'] as $n=> $date) {
                             if ($date["from"] <= $row && $row <= $date["to"]) {
-                                if (isset($data[$k][$m][$n]['index'])) {
-                                    $data[$k][$m][$n]['index'] []= $value;
+                                if (isset($data[$k]['days'][$m]['data'][$n]['index'])) {
+                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value;
                                 } else {
-                                    $data[$k][$m][$n]['index'] = [];
-                                    $data[$k][$m][$n]['index'] []= $value;
+                                    $data[$k]['days'][$m]['data'][$n]['index'] = [];
+                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value;
                                 }
                                 break;
                             }
