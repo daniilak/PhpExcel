@@ -128,16 +128,18 @@ class ex
 
                 $cell = $worksheet->getCellByColumnAndRow($column, $row);
                 $value = trim($cell->getCalculatedValue());
+                $guid = 0;
                 foreach ($worksheet->getMergeCells() as $mergedCells) {
                     if ($cell->isInRange($mergedCells)) {
                         $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
+                        $guid = $mergedCells;
                         break;
                     }
                 }
 
                 if (!is_null($value) && $value != "") {
                     $value = trim($value);
-                    $this->lessons($value, $column, $row);
+                    $this->lessons($value, $column, $row, $guid);
                 }
             }
         }
@@ -171,7 +173,7 @@ class ex
         }
         $this->days = $days;
     }
-    public function lessons($value, $column, $row)
+    public function lessons($value, $column, $row, $index = 0)
     {
         // var_dump('value: ' . trim($value) . ', column: ' . $column . ', row: ' . $row);
         $lessons = $this->lessons;
@@ -183,10 +185,10 @@ class ex
                         foreach($days['data'] as $n=> $date) {
                             if ($date["from"] <= $row && $row <= $date["to"]) {
                                 if (isset($data[$k]['days'][$m]['data'][$n]['index'])) {
-                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value;
+                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value.'®'.$index;
                                 } else {
                                     $data[$k]['days'][$m]['data'][$n]['index'] = [];
-                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value;
+                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value.'®'.$index;
                                 }
                                 break;
                             }
