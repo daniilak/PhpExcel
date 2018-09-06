@@ -33,12 +33,12 @@ class ex
     protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
-        'Понедельник' => ['from' => 0, 'to' => 0],
-        'Вторник' => ['from' => 0, 'to' => 0],
-        'Среда' => ['from' => 0, 'to' => 0],
-        'Четверг' => ['from' => 0, 'to' => 0],
-        'Пятница' => ['from' => 0, 'to' => 0],
-        'Суббота' => ['from' => 0, 'to' => 0],
+        'Понедельник' => ['f' => 0, 't' => 0],
+        'Вторник' => ['f' => 0, 't' => 0],
+        'Среда' => ['f' => 0, 't' => 0],
+        'Четверг' => ['f' => 0, 't' => 0],
+        'Пятница' => ['f' => 0, 't' => 0],
+        'Суббота' => ['f' => 0, 't' => 0],
     ];
 
     protected $file;
@@ -145,28 +145,36 @@ class ex
         }
         return true;
     }
+    /*
+    * Third method for save last data
+    */
+    public function excel3()
+    {
+        $data = json_decode(file_get_contents('dataNew.json'), true);
+
+    }
 
 
     public function dates($value, $row)
     {
         $days = $this->days;
         if (in_array($value, $this->daysName)) {
-            if ($days[$value]['from'] == 0) {
-                $days[$value]['from'] = $row;
+            if ($days[$value]['f'] == 0) {
+                $days[$value]['f'] = $row;
             }
-            $days[$value]['to'] = $row;
+            $days[$value]['t'] = $row;
         }
         if (in_array($value, $this->dates)) {
             foreach ($days as $key => $day) {
-                $a = ($day['to'] == 0) ? 9999 : $day['to'];
-                if ($day['from'] <= $row && $row <= $a) {
+                $a = ($day['t'] == 0) ? 9999 : $day['t'];
+                if ($day['f'] <= $row && $row <= $a) {
                     if (!isset($days[$key]['data'][$value])) {
                         $days[$key]['data'][$value] = [];
-                        if (!isset($days[$key]['data'][$value]['from'])) {
-                            $days[$key]['data'][$value]['from'] = $row;
+                        if (!isset($days[$key]['data'][$value]['f'])) {
+                            $days[$key]['data'][$value]['f'] = $row;
                         }
                     } else {
-                        $days[$key]['data'][$value]['to'] = $row;
+                        $days[$key]['data'][$value]['t'] = $row;
                     }
                 }
             }
@@ -179,16 +187,23 @@ class ex
         $lessons = $this->lessons;
         $data = $this->data;
         foreach ($data as $k => $groups) {
-            if ($groups["from"] <= $column && $column <= $groups["to"]) {
+            if ($groups["f"] <= $column && $column <= $groups["t"]) {
                 foreach($groups['days'] as $m => $days) {
-                    if ($days["from"] <= $row && $row <= $days["to"]) {
+                    if ($days["f"] <= $row && $row <= $days["t"]) {
                         foreach($days['data'] as $n=> $date) {
-                            if ($date["from"] <= $row && $row <= $date["to"]) {
-                                if (isset($data[$k]['days'][$m]['data'][$n]['index'])) {
-                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value.'®'.$index;
+                            if ($date["f"] <= $row && $row <= $date["t"]) {
+                                if (isset($data[$k]['days'][$m]['data'][$n]['value'])) {
+                                    if ($index == 0 || array_search($index, $data[$k]['days'][$m]['data'][$n]['index'], true) === false)
+                                    {
+                                        $data[$k]['days'][$m]['data'][$n]['value'] []= $value;
+                                        $data[$k]['days'][$m]['data'][$n]['index'] []= $index;
+                                    }
+                                    
                                 } else {
+                                    $data[$k]['days'][$m]['data'][$n]['value'] = [];
                                     $data[$k]['days'][$m]['data'][$n]['index'] = [];
-                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $value.'®'.$index;
+                                    $data[$k]['days'][$m]['data'][$n]['value'] []= $value;
+                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $index;
                                 }
                                 break;
                             }
@@ -209,9 +224,9 @@ class ex
         $groups = $this->groups;
         if (!isset($groups['index'][$value])) {
             $groups['index'][$value] = [];
-            $groups['index'][$value]['from'] = $column;
+            $groups['index'][$value]['f'] = $column;
         } else {
-            $groups['index'][$value]['to'] = $column;
+            $groups['index'][$value]['t'] = $column;
         }
         $this->groups = $groups;
         return true;
