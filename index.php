@@ -21,13 +21,15 @@ if (!file_exists("20.xls")) {
 
 $ex = new ex("20.xls");
 // $ex-> setData ();
-$ex-> getData ();
+// $ex->getData();
+$ex->excel3();
 echo 'ok';
 
 class ex
 {
     protected $worksheet;
     protected $data;
+    protected $tempValueStar = '';
     protected $groups = [];
     protected $lessons = [];
     protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
@@ -47,18 +49,20 @@ class ex
         $this->file = $file;
     }
 
-    public function setData () {
+    public function setData()
+    {
         $objPHPExcel = PHPExcel_IOFactory::load($this->file);
         foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
             $this->worksheet = $worksheet;
             $this->excel1();
             break;
         }
-        $this->save ();
+        $this->save();
     }
 
-    public function getData () {
-        $this->load ();
+    public function getData()
+    {
+        $this->load();
         $objPHPExcel = PHPExcel_IOFactory::load($this->file);
         foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
             $this->worksheet = $worksheet;
@@ -68,7 +72,8 @@ class ex
         file_put_contents('dataNew.json', json_encode($this->data));
     }
 
-    public function save () {
+    public function save()
+    {
         $tmp = $this->groups['index'];
         foreach ($tmp as &$t) {
             $t['days'] = $this->days;
@@ -78,20 +83,21 @@ class ex
         echo 'ok';
     }
 
-    public function load () {
+    public function load()
+    {
         $this->data = json_decode(file_get_contents('data.json'), true);
     }
-    
+
     /*
-    * First method for saving first data
-    */
+     * First method for saving first data
+     */
     public function excel1()
     {
         $worksheet = $this->worksheet;
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
-                if ($row == 1 || $column < 2 ) {
+                if ($row == 1 || $column < 2) {
                     $cell = $worksheet->getCellByColumnAndRow($column, $row);
                     $value = trim($cell->getCalculatedValue());
                     foreach ($worksheet->getMergeCells() as $mergedCells) {
@@ -105,8 +111,8 @@ class ex
                         $value = trim($value);
                         if ($row == 1) {
                             $this->groups($value, $column);
-                        } 
-                        if ($column < 2 ) {
+                        }
+                        if ($column < 2) {
                             $this->dates($value, $row);
                         }
                     }
@@ -116,8 +122,8 @@ class ex
         return true;
     }
     /*
-    * Second method with load first data
-    */
+     * Second method with load first data
+     */
     public function excel2()
     {
         $worksheet = $this->worksheet;
@@ -128,7 +134,7 @@ class ex
 
                 $cell = $worksheet->getCellByColumnAndRow($column, $row);
                 $value = trim($cell->getCalculatedValue());
-                $guid = 0;
+                $guid = '';
                 foreach ($worksheet->getMergeCells() as $mergedCells) {
                     if ($cell->isInRange($mergedCells)) {
                         $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
@@ -139,6 +145,7 @@ class ex
 
                 if (!is_null($value) && $value != "") {
                     $value = trim($value);
+                    // звезда проставлена слева сверху
                     $this->lessons($value, $column, $row, $guid);
                 }
             }
@@ -146,14 +153,28 @@ class ex
         return true;
     }
     /*
-    * Third method for save last data
-    */
+     * Third method for save last data
+     */
     public function excel3()
     {
         $data = json_decode(file_get_contents('dataNew.json'), true);
-
+        foreach ($data as $k => &$groups) {
+            foreach ($groups['days'] as $m => &$days) {
+                foreach ($days['data'] as $n => &$date) {
+                    if (isset($date['value'])) {
+                        foreach ($date['value'] as $p => &$lesson) {
+                            if ($lesson == '*' || $lesson == '**') {
+                                $date['value'][$p + 1] = $date['value'][$p + 1]. "§".$lesson;
+                            } else {
+                                // парсер
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        file_put_contents('dataNewNew.json', json_encode($data));
     }
-
 
     public function dates($value, $row)
     {
@@ -181,29 +202,27 @@ class ex
         }
         $this->days = $days;
     }
-    public function lessons($value, $column, $row, $index = 0)
+    public function lessons($value, $column, $row, $index = '')
     {
         // var_dump('value: ' . trim($value) . ', column: ' . $column . ', row: ' . $row);
         $lessons = $this->lessons;
         $data = $this->data;
         foreach ($data as $k => $groups) {
             if ($groups["f"] <= $column && $column <= $groups["t"]) {
-                foreach($groups['days'] as $m => $days) {
+                foreach ($groups['days'] as $m => $days) {
                     if ($days["f"] <= $row && $row <= $days["t"]) {
-                        foreach($days['data'] as $n=> $date) {
+                        foreach ($days['data'] as $n => $date) {
                             if ($date["f"] <= $row && $row <= $date["t"]) {
                                 if (isset($data[$k]['days'][$m]['data'][$n]['value'])) {
-                                    if ($index == 0 || array_search($index, $data[$k]['days'][$m]['data'][$n]['index'], true) === false)
-                                    {
-                                        $data[$k]['days'][$m]['data'][$n]['value'] []= $value;
-                                        $data[$k]['days'][$m]['data'][$n]['index'] []= $index;
+                                    if ($index == '' || !array_search($index, $data[$k]['days'][$m]['data'][$n]['index'], true)) {
+                                        $data[$k]['days'][$m]['data'][$n]['value'][] = $value;
+                                        $data[$k]['days'][$m]['data'][$n]['index'][] = $index;
                                     }
-                                    
                                 } else {
                                     $data[$k]['days'][$m]['data'][$n]['value'] = [];
                                     $data[$k]['days'][$m]['data'][$n]['index'] = [];
-                                    $data[$k]['days'][$m]['data'][$n]['value'] []= $value;
-                                    $data[$k]['days'][$m]['data'][$n]['index'] []= $index;
+                                    $data[$k]['days'][$m]['data'][$n]['value'][] = $value;
+                                    $data[$k]['days'][$m]['data'][$n]['index'][] = $index;
                                 }
                                 break;
                             }
