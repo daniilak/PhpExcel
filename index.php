@@ -20,9 +20,9 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-// $ex-> setData ();
+$ex-> setData ();
 // $ex->getData();
-$ex->excel3();
+// $ex->excel3();
 echo 'ok';
 
 class ex
@@ -74,11 +74,12 @@ class ex
 
     public function save()
     {
-        $tmp = $this->groups['index'];
-        foreach ($tmp as &$t) {
-            $t['days'] = $this->days;
-            unset($t);
-        }
+        $tmp = $this->groups;
+        // foreach ($tmp as &$t) {
+        //     $t['days'] = $this->days;
+        //     unset($t);
+        // }
+        var_dump($this->groups);
         file_put_contents('data.json', json_encode($tmp));
         echo 'ok';
     }
@@ -97,20 +98,24 @@ class ex
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
-                if ($row == 1 || $column < 2) {
+                if ($row == 1 || $row == 2 || $column < 2) {
                     $cell = $worksheet->getCellByColumnAndRow($column, $row);
                     $value = trim($cell->getCalculatedValue());
+                    
                     foreach ($worksheet->getMergeCells() as $mergedCells) {
                         if ($cell->isInRange($mergedCells)) {
                             $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
                             break;
                         }
                     }
-
                     if (!is_null($value) && $value != "") {
                         $value = trim($value);
                         if ($row == 1) {
                             $this->groups($value, $column);
+                        }
+                        
+                        if ($row == 2) {
+                            $this->subGroups($value, $column);
                         }
                         if ($column < 2) {
                             $this->dates($value, $row);
@@ -167,6 +172,7 @@ class ex
                                 $date['value'][$p + 1] = $date['value'][$p + 1]. "§".$lesson;
                             } else {
                                 // парсер
+                                //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
                             }
                         }
                     }
@@ -241,11 +247,28 @@ class ex
     public function groups($value, $column)
     {
         $groups = $this->groups;
-        if (!isset($groups['index'][$value])) {
-            $groups['index'][$value] = [];
-            $groups['index'][$value]['f'] = $column;
+        if (!isset($groups[$value])) {
+            $groups[$value] = [];
+            $groups[$value]['f'] = $column;
         } else {
-            $groups['index'][$value]['t'] = $column;
+            $groups[$value]['t'] = $column;
+        }
+        $this->groups = $groups;
+        return true;
+    }
+    public function subGroups($value, $column)
+    {
+        $groups = $this->groups;
+        foreach ($groups as $n => &$group) {
+            if ($group["f"] <= $column && $column <= $group["t"]) {
+                if (!isset($group['index'][$value])) { 
+                    $group['index'][$value] = [];
+                    $group['index'][$value]['f'] = $column;
+                } else {
+                    $group['index'][$value]['t'] = $column;
+                }
+            break;
+            }
         }
         $this->groups = $groups;
         return true;
