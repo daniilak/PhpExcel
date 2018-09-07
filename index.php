@@ -20,9 +20,9 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-$ex-> setData ();
+// $ex-> setData ();
 // $ex->getData();
-// $ex->excel3();
+$ex->excel3();
 echo 'ok';
 
 class ex
@@ -74,13 +74,13 @@ class ex
 
     public function save()
     {
-        $tmp = $this->groups;
-        // foreach ($tmp as &$t) {
-        //     $t['days'] = $this->days;
-        //     unset($t);
-        // }
-        var_dump($this->groups);
-        file_put_contents('data.json', json_encode($tmp));
+        $groups = $this->groups;
+        foreach ($groups as &$group) {
+            foreach ($group['index'] as &$subGroups) {
+                $subGroups['days'] = $this->days;
+            }
+        }
+        file_put_contents('data.json', json_encode($groups));
         echo 'ok';
     }
 
@@ -101,7 +101,7 @@ class ex
                 if ($row == 1 || $row == 2 || $column < 2) {
                     $cell = $worksheet->getCellByColumnAndRow($column, $row);
                     $value = trim($cell->getCalculatedValue());
-                    
+
                     foreach ($worksheet->getMergeCells() as $mergedCells) {
                         if ($cell->isInRange($mergedCells)) {
                             $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
@@ -113,7 +113,7 @@ class ex
                         if ($row == 1) {
                             $this->groups($value, $column);
                         }
-                        
+
                         if ($row == 2) {
                             $this->subGroups($value, $column);
                         }
@@ -164,15 +164,20 @@ class ex
     {
         $data = json_decode(file_get_contents('dataNew.json'), true);
         foreach ($data as $k => &$groups) {
-            foreach ($groups['days'] as $m => &$days) {
-                foreach ($days['data'] as $n => &$date) {
-                    if (isset($date['value'])) {
-                        foreach ($date['value'] as $p => &$lesson) {
-                            if ($lesson == '*' || $lesson == '**') {
-                                $date['value'][$p + 1] = $date['value'][$p + 1]. "§".$lesson;
-                            } else {
-                                // парсер
-                                //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
+            foreach ($groups['index'] as $m => &$subGroups) {
+                foreach ($subGroups['days'] as $p => &$days) {
+                    foreach ($days['data'] as $t => &$date) {
+                        if (isset($date['value'])) {
+                            unset($date['index']);
+                            foreach ($date['value'] as $j => &$lesson) {
+                                if ($lesson == '*' || $lesson == '**') {
+                                    // var_dump($lesson);
+                                    $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
+                                    unset($date['value'][$j]);
+                                } else {
+                                    // парсер
+                                    //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
+                                }
                             }
                         }
                     }
@@ -208,27 +213,32 @@ class ex
         }
         $this->days = $days;
     }
+
     public function lessons($value, $column, $row, $index = '')
     {
-        // var_dump('value: ' . trim($value) . ', column: ' . $column . ', row: ' . $row);
         $lessons = $this->lessons;
         $data = $this->data;
         foreach ($data as $k => $groups) {
             if ($groups["f"] <= $column && $column <= $groups["t"]) {
-                foreach ($groups['days'] as $m => $days) {
-                    if ($days["f"] <= $row && $row <= $days["t"]) {
-                        foreach ($days['data'] as $n => $date) {
-                            if ($date["f"] <= $row && $row <= $date["t"]) {
-                                if (isset($data[$k]['days'][$m]['data'][$n]['value'])) {
-                                    if ($index == '' || !array_search($index, $data[$k]['days'][$m]['data'][$n]['index'], true)) {
-                                        $data[$k]['days'][$m]['data'][$n]['value'][] = $value;
-                                        $data[$k]['days'][$m]['data'][$n]['index'][] = $index;
+                foreach ($groups['index'] as $m => $subGroups) {
+                    if ($subGroups["f"] <= $column && $column <= $subGroups["t"]) {
+                        foreach ($subGroups['days'] as $p => $days) {
+                            if ($days["f"] <= $row && $row <= $days["t"]) {
+                                foreach ($days['data'] as $n => $date) {
+                                    if ($date["f"] <= $row && $row <= $date["t"]) {
+                                        if (isset($data[$k]['index'][$m]['days'][$p]['data'][$n]['value'])) {
+                                            if ($index == '' || !array_search($index, $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'], true)) {
+                                                $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'][] = $value;
+                                                $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'][] = $index;
+                                            }
+                                        } else {
+                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'] = [];
+                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'] = [];
+                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'][] = $value;
+                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'][] = $index;
+                                        }
+                                        break;
                                     }
-                                } else {
-                                    $data[$k]['days'][$m]['data'][$n]['value'] = [];
-                                    $data[$k]['days'][$m]['data'][$n]['index'] = [];
-                                    $data[$k]['days'][$m]['data'][$n]['value'][] = $value;
-                                    $data[$k]['days'][$m]['data'][$n]['index'][] = $index;
                                 }
                                 break;
                             }
@@ -261,13 +271,13 @@ class ex
         $groups = $this->groups;
         foreach ($groups as $n => &$group) {
             if ($group["f"] <= $column && $column <= $group["t"]) {
-                if (!isset($group['index'][$value])) { 
+                if (!isset($group['index'][$value])) {
                     $group['index'][$value] = [];
                     $group['index'][$value]['f'] = $column;
                 } else {
                     $group['index'][$value]['t'] = $column;
                 }
-            break;
+                break;
             }
         }
         $this->groups = $groups;
