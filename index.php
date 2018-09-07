@@ -35,12 +35,12 @@ class ex
     protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
-        'Понедельник' => ['f' => 0, 't' => 0],
-        'Вторник' => ['f' => 0, 't' => 0],
-        'Среда' => ['f' => 0, 't' => 0],
-        'Четверг' => ['f' => 0, 't' => 0],
-        'Пятница' => ['f' => 0, 't' => 0],
-        'Суббота' => ['f' => 0, 't' => 0],
+        'Понедельник'   => ['f' => 0, 't' => 0],
+        'Вторник'       => ['f' => 0, 't' => 0],
+        'Среда'         => ['f' => 0, 't' => 0],
+        'Четверг'       => ['f' => 0, 't' => 0],
+        'Пятница'       => ['f' => 0, 't' => 0],
+        'Суббота'       => ['f' => 0, 't' => 0],
     ];
 
     protected $file;
@@ -214,26 +214,25 @@ class ex
 
     public function lessons($value, $column, $row, $index = '')
     {
-        $lessons = $this->lessons;
         $data = $this->data;
-        foreach ($data as $k => $groups) {
+        foreach ($data as $k => &$groups) {
             if ($groups["f"] <= $column && $column <= $groups["t"]) {
-                foreach ($groups['index'] as $m => $subGroups) {
+                foreach ($groups['index'] as $m => &$subGroups) {
                     if ($subGroups["f"] <= $column && $column <= $subGroups["t"]) {
-                        foreach ($subGroups['days'] as $p => $days) {
+                        foreach ($subGroups['days'] as $p => &$days) {
                             if ($days["f"] <= $row && $row <= $days["t"]) {
-                                foreach ($days['data'] as $n => $date) {
+                                foreach ($days['data'] as $n => &$date) {
                                     if ($date["f"] <= $row && $row <= $date["t"]) {
-                                        if (isset($data[$k]['index'][$m]['days'][$p]['data'][$n]['value'])) {
-                                            if ($index == '' || !array_search($index, $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'], true)) {
-                                                $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'][] = $value;
-                                                $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'][] = $index;
+                                        if (isset($date['value'])) {
+                                            if ($index == '' || !in_array($index, $date['index'])) {
+                                                $date['value'][] = $value;
+                                                $date['index'][] = $index;
                                             }
                                         } else {
-                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'] = [];
-                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'] = [];
-                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['value'][] = $value;
-                                            $data[$k]['index'][$m]['days'][$p]['data'][$n]['index'][] = $index;
+                                            $date['value'] = [];
+                                            $date['index'] = [];
+                                            $date['value'][] = $value;
+                                            $date['index'][] = $index;
                                         }
                                         break;
                                     }
@@ -247,9 +246,7 @@ class ex
                 break;
             }
         }
-        $this->lessons = $lessons;
         $this->data = $data;
-        $this->groups = $groups;
     }
 
     public function groups($value, $column)
@@ -289,8 +286,16 @@ class ex
     // типы пар могут еще быть
     // скобки могут быть в названии
     // подгруппы записаны в ячейках - нахера?
+    // подргуппы написаны крива или 1 п/гр или 1 п/г => пока что 1 п/г
+    // "С 1 по 8 недели" чо за 
     public function sendTimetable($name_group, $id_subgroup, $name_day, $name_time, $lesson)
     {
+        $lesson = str_replace('1 п/г', '',$lesson);
+        $lesson = str_replace('2 п/г', '',$lesson);
+        $lesson = str_replace('3 п/г', '',$lesson);
+        var_dump($lesson);
+        return;
+        //далее методов нет)
         $id_group = $this->getIdGroup($name_group);
         $id_subgroup = ($id_subgroup == 'X') ? 0 : $id_subgroup;
         $id_day = array_search($name_day, $this->daysName);
@@ -301,6 +306,7 @@ class ex
             $id_type_week = ($arr[1] == '*') ? 1 : 2 ;
             $lesson = $arr[0];
         }
+        
         $arr = explode(',', $lesson);
         $cab = trim($arr[0]);
         $lessonAndTypeLesson = explode('(', trim($arr[1]));
