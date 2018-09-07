@@ -171,12 +171,10 @@ class ex
                             unset($date['index']);
                             foreach ($date['value'] as $j => &$lesson) {
                                 if ($lesson == '*' || $lesson == '**') {
-                                    // var_dump($lesson);
                                     $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
                                     unset($date['value'][$j]);
                                 } else {
-                                    // парсер
-                                    //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
+                                    $this->sendTimetable($k, $m, $p, $t, $lesson);
                                 }
                             }
                         }
@@ -266,6 +264,7 @@ class ex
         $this->groups = $groups;
         return true;
     }
+
     public function subGroups($value, $column)
     {
         $groups = $this->groups;
@@ -282,5 +281,32 @@ class ex
         }
         $this->groups = $groups;
         return true;
+    }
+
+    //name_group, id_subgroup || X, name_day, name_time, lesson by format:
+    //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
+    // физкультура хрен пойми как написана
+    // типы пар могут еще быть
+    // скобки могут быть в названии
+    // подгруппы записаны в ячейках - нахера?
+    public function sendTimetable($name_group, $id_subgroup, $name_day, $name_time, $lesson)
+    {
+        $id_group = $this->getIdGroup($name_group);
+        $id_subgroup = ($id_subgroup == 'X') ? 0 : $id_subgroup;
+        $id_day = array_search($name_day, $this->daysName);
+        $id_time = array_search($name_time, $this->dates);
+        $id_type_week = 0;
+        $arr = explode('§', $lesson);
+        if (isset($arr[1])) {
+            $id_type_week = ($arr[1] == '*') ? 1 : 2 ;
+            $lesson = $arr[0];
+        }
+        $arr = explode(',', $lesson);
+        $cab = trim($arr[0]);
+        $lessonAndTypeLesson = explode('(', trim($arr[1]));
+        $idLesson = $this->getIdLesson(trim($lessonAndTypeLesson[0]));
+        $idTypeLesson = $this->getIdTypeLesson(str_replace(trim($lessonAndTypeLesson[1]), ')', 1 ));
+        $idTeacher = $this->getIdTeacher(trim($arr[2]));
+
     }
 }
