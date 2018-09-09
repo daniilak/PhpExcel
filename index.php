@@ -14,6 +14,9 @@ date_default_timezone_set('Europe/London');
 
 /** Include PHPExcel_IOFactory */
 require_once dirname(__FILE__) . '/PHPExcel/IOFactory.php';
+require_once dirname(__FILE__) . '/config.php';
+require_once dirname(__FILE__) . '/db.php';
+require_once dirname(__FILE__) . '/query.php';
 
 if (!file_exists("20.xls")) {
     exit("Please run 14excel5.php first.\n");
@@ -44,6 +47,8 @@ class ex
     ];
 
     protected $file;
+    protected $query;
+    
     public function __construct($file)
     {
         $this->file = $file;
@@ -163,6 +168,7 @@ class ex
     public function excel3()
     {
         $data = json_decode(file_get_contents('dataNew.json'), true);
+        $this->setQuery();
         foreach ($data as $k => &$groups) {
             foreach ($groups['index'] as $m => &$subGroups) {
                 foreach ($subGroups['days'] as $p => &$days) {
@@ -293,10 +299,10 @@ class ex
         $lesson = str_replace('1 п/г', '',$lesson);
         $lesson = str_replace('2 п/г', '',$lesson);
         $lesson = str_replace('3 п/г', '',$lesson);
-        var_dump($lesson);
-        return;
+        // print_r($lesson."<br>");
+        // return;
         //далее методов нет)
-        $id_group = $this->getIdGroup($name_group);
+        $id_group = $this->query->getIdGroup($name_group);
         $id_subgroup = ($id_subgroup == 'X') ? 0 : $id_subgroup;
         $id_day = array_search($name_day, $this->daysName);
         $id_time = array_search($name_time, $this->dates);
@@ -310,9 +316,12 @@ class ex
         $arr = explode(',', $lesson);
         $cab = trim($arr[0]);
         $lessonAndTypeLesson = explode('(', trim($arr[1]));
-        $idLesson = $this->getIdLesson(trim($lessonAndTypeLesson[0]));
-        $idTypeLesson = $this->getIdTypeLesson(str_replace(trim($lessonAndTypeLesson[1]), ')', 1 ));
-        $idTeacher = $this->getIdTeacher(trim($arr[2]));
-
+        $idLesson = $this->query->getIdLesson(trim($lessonAndTypeLesson[0]));
+        $idTypeLesson = $this->query->getIdTypeLesson(str_replace(trim($lessonAndTypeLesson[1]), ')', 1 ));
+        $idTeacher = $this->query->getIdTeacher(trim($arr[2]));
+    }
+    
+    public function setQuery() {
+        $this->query = new Query();
     }
 }
