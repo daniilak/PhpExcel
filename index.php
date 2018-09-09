@@ -294,14 +294,15 @@ class ex
     // подгруппы записаны в ячейках - нахера?
     // подргуппы написаны крива или 1 п/гр или 1 п/г => пока что 1 п/г
     // "С 1 по 8 недели" чо за 
+    //номер кабинете,  запятая, название предмета, скобка открывающаяся, тип предмета, скобка закрывающая, запятая,  имя препода
     public function sendTimetable($name_group, $id_subgroup, $name_day, $name_time, $lesson)
     {
         $lesson = str_replace('1 п/г', '',$lesson);
         $lesson = str_replace('2 п/г', '',$lesson);
         $lesson = str_replace('3 п/г', '',$lesson);
+        $lesson = str_replace(', ,', ',',$lesson);
         // print_r($lesson."<br>");
         // return;
-        //далее методов нет)
         $id_group = $this->query->getIdGroup($name_group);
         $id_subgroup = ($id_subgroup == 'X') ? 0 : $id_subgroup;
         $id_day = array_search($name_day, $this->daysName);
@@ -318,7 +319,14 @@ class ex
         $lessonAndTypeLesson = explode('(', trim($arr[1]));
         $idLesson = $this->query->getIdLesson(trim($lessonAndTypeLesson[0]));
         $idTypeLesson = $this->query->getIdTypeLesson(str_replace(trim($lessonAndTypeLesson[1]), ')', 1 ));
-        $idTeacher = $this->query->getIdTeacher(trim($arr[2]));
+        if (isset($arr[2]))
+            $idTeacher = $this->query->getIdTeacher(trim($arr[2]));
+        else 
+            $idTeacher = $this->query->getIdTeacher(' ');
+
+        print_r($id_group." ".$id_subgroup." ".$id_day
+        ." ".$id_time." ".$id_type_week." ".$cab." ".$idLesson." ".$idTeacher."<br>");
+
     }
     
     public function setQuery() {
