@@ -23,10 +23,12 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-// $ex-> setData ();
-// $ex->getData();
-$ex->excel3();
-echo 'ok';
+// $ex->   setData ();
+// echo 'ok setData<br>';
+// $ex->   getData ();
+// echo 'ok getData<br>';
+$ex->   excel3 ();
+echo 'ok excel3<br>';
 
 class ex
 {
@@ -81,9 +83,7 @@ class ex
     {
         $groups = $this->groups;
         foreach ($groups as &$group) {
-            foreach ($group['index'] as &$subGroups) {
-                $subGroups['days'] = $this->days;
-            }
+            $group['days'] = $this->days;
         }
         file_put_contents('data.json', json_encode($groups));
         echo 'ok';
@@ -103,7 +103,7 @@ class ex
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
-                if ($row == 1 || $row == 2 || $column < 2) {
+                if ($row == 1 || $column < 2) {
                     $cell = $worksheet->getCellByColumnAndRow($column, $row);
                     $value = trim($cell->getCalculatedValue());
 
@@ -119,9 +119,6 @@ class ex
                             $this->groups($value, $column);
                         }
 
-                        if ($row == 2) {
-                            $this->subGroups($value, $column);
-                        }
                         if ($column < 2) {
                             $this->dates($value, $row);
                         }
@@ -170,8 +167,7 @@ class ex
         $data = json_decode(file_get_contents('dataNew.json'), true);
         $this->setQuery();
         foreach ($data as $k => &$groups) {
-            foreach ($groups['index'] as $m => &$subGroups) {
-                foreach ($subGroups['days'] as $p => &$days) {
+                foreach ($groups['days'] as $p => &$days) {
                     foreach ($days['data'] as $t => &$date) {
                         if (isset($date['value'])) {
                             unset($date['index']);
@@ -180,13 +176,12 @@ class ex
                                     $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
                                     unset($date['value'][$j]);
                                 } else {
-                                    $this->sendTimetable($k, $m, $p, $t, $lesson);
+                                    $this->sendTimetable($k, $p, $t, $lesson);
                                 }
                             }
                         }
                     }
                 }
-            }
         }
         file_put_contents('dataNewNew.json', json_encode($data));
     }
@@ -223,25 +218,20 @@ class ex
         $data = $this->data;
         foreach ($data as $k => &$groups) {
             if ($groups["f"] <= $column && $column <= $groups["t"]) {
-                foreach ($groups['index'] as $m => &$subGroups) {
-                    if ($subGroups["f"] <= $column && $column <= $subGroups["t"]) {
-                        foreach ($subGroups['days'] as $p => &$days) {
-                            if ($days["f"] <= $row && $row <= $days["t"]) {
-                                foreach ($days['data'] as $n => &$date) {
-                                    if ($date["f"] <= $row && $row <= $date["t"]) {
-                                        if (isset($date['value'])) {
-                                            if ($index == '' || !in_array($index, $date['index'])) {
-                                                $date['value'][] = $value;
-                                                $date['index'][] = $index;
-                                            }
-                                        } else {
-                                            $date['value'] = [];
-                                            $date['index'] = [];
-                                            $date['value'][] = $value;
-                                            $date['index'][] = $index;
-                                        }
-                                        break;
+                foreach ($groups['days'] as $p => &$days) {
+                    if ($days["f"] <= $row && $row <= $days["t"]) {
+                        foreach ($days['data'] as $n => &$date) {
+                            if ($date["f"] <= $row && $row <= $date["t"]) {
+                                if (isset($date['value'])) {
+                                    if ($index == '' || !in_array($index, $date['index'])) {
+                                        $date['value'][] = $value;
+                                        $date['index'][] = $index;
                                     }
+                                } else {
+                                    $date['value'] = [];
+                                    $date['index'] = [];
+                                    $date['value'][] = $value;
+                                    $date['index'][] = $index;
                                 }
                                 break;
                             }
@@ -268,6 +258,7 @@ class ex
         return true;
     }
 
+    //не юзаем
     public function subGroups($value, $column)
     {
         $groups = $this->groups;
@@ -287,24 +278,9 @@ class ex
     }
 
     //name_group, id_subgroup || X, name_day, name_time, lesson by format:
-    //Г-316, Математический анализ (лк), доц. Сироткина М.Е.§*
-    // физкультура хрен пойми как написана
-    // типы пар могут еще быть
-    // скобки могут быть в названии
-    // подгруппы записаны в ячейках - нахера?
-    // подргуппы написаны крива или 1 п/гр или 1 п/г => пока что 1 п/г
-    // "С 1 по 8 недели" чо за 
-    //номер кабинете,  запятая, название предмета, скобка открывающаяся, тип предмета, скобка закрывающая, запятая,  имя препода
-    public function sendTimetable($name_group, $id_subgroup, $name_day, $name_time, $lesson)
+    public function sendTimetable($name_group, $name_day, $name_time, $lesson)
     {
-        $lesson = str_replace('1 п/г', '',$lesson);
-        $lesson = str_replace('2 п/г', '',$lesson);
-        $lesson = str_replace('3 п/г', '',$lesson);
-        $lesson = str_replace(', ,', ',',$lesson);
-        // print_r($lesson."<br>");
-        // return;
         $id_group = $this->query->getIdGroup($name_group);
-        $id_subgroup = ($id_subgroup == 'X') ? 0 : $id_subgroup;
         $id_day = array_search($name_day, $this->daysName);
         $id_time = array_search($name_time, $this->dates);
         $id_type_week = 0;
@@ -314,19 +290,10 @@ class ex
             $lesson = $arr[0];
         }
         
-        $arr = explode(',', $lesson);
-        $cab = trim($arr[0]);
-        $lessonAndTypeLesson = explode('(', trim($arr[1]));
-        $idLesson = $this->query->getIdLesson(trim($lessonAndTypeLesson[0]));
-        $idTypeLesson = $this->query->getIdTypeLesson(str_replace(trim($lessonAndTypeLesson[1]), ')', 1 ));
-        if (isset($arr[2]))
-            $idTeacher = $this->query->getIdTeacher(trim($arr[2]));
-        else 
-            $idTeacher = $this->query->getIdTeacher(' ');
-
-        print_r($id_group." ".$id_subgroup." ".$id_day
-        ." ".$id_time." ".$id_type_week." ".$cab." ".$idLesson." ".$idTeacher."<br>");
-
+        $lesson = preg_replace("/\s{2,}/"," ",$lesson);
+        print_r($id_group." ".$id_day
+        ." ".$id_time." ".$id_type_week." ".$lesson."<br>");
+        $this->query->send($id_group,  $id_day, $id_time, $id_type_week, $lesson);
     }
     
     public function setQuery() {
