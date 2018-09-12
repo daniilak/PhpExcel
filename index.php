@@ -9,7 +9,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', true);
 ini_set('display_startup_errors', true);
-ini_set('max_execution_time', '600');
+ini_set('max_execution_time', '1000');
 date_default_timezone_set('Europe/London');
 
 /** Include PHPExcel_IOFactory */
@@ -23,11 +23,11 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-// $ex->   setData ();
-// echo 'ok setData<br>';
-// $ex->   getData ();
-// echo 'ok getData<br>';
-$ex->excel3();
+$ex-> setData ();
+echo 'ok setData<br>';
+$ex-> getData ();
+echo 'ok getData<br>';
+$ex-> excel3();
 echo 'ok excel3<br>';
 
 class ex
@@ -176,6 +176,14 @@ class ex
                                 $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
                                 unset($date['value'][$j]);
                             } else {
+                                // if (stristr($lesson,'**')) {
+                                //     $lesson = str_replace("**", "", $lesson);
+                                //     $lesson =  $lesson . "§" . '**';
+                                // }
+                                // if (stristr($lesson,'*')) {
+                                //     $lesson = str_replace("*", "", $lesson);
+                                //     $lesson =  $lesson . "§" . '*';
+                                // }  
                                 $this->sendTimetable($k, $p, $t, $lesson);
                             }
                         }
