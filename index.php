@@ -27,7 +27,7 @@ $ex = new ex("20.xls");
 // echo 'ok setData<br>';
 // $ex->   getData ();
 // echo 'ok getData<br>';
-$ex->   excel3 ();
+$ex->excel3();
 echo 'ok excel3<br>';
 
 class ex
@@ -40,17 +40,17 @@ class ex
     protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
-        'Понедельник'   => ['f' => 0, 't' => 0],
-        'Вторник'       => ['f' => 0, 't' => 0],
-        'Среда'         => ['f' => 0, 't' => 0],
-        'Четверг'       => ['f' => 0, 't' => 0],
-        'Пятница'       => ['f' => 0, 't' => 0],
-        'Суббота'       => ['f' => 0, 't' => 0],
+        'Понедельник' => ['f' => 0, 't' => 0],
+        'Вторник' => ['f' => 0, 't' => 0],
+        'Среда' => ['f' => 0, 't' => 0],
+        'Четверг' => ['f' => 0, 't' => 0],
+        'Пятница' => ['f' => 0, 't' => 0],
+        'Суббота' => ['f' => 0, 't' => 0],
     ];
 
     protected $file;
     protected $query;
-    
+
     public function __construct($file)
     {
         $this->file = $file;
@@ -167,23 +167,22 @@ class ex
         $data = json_decode(file_get_contents('dataNew.json'), true);
         $this->setQuery();
         foreach ($data as $k => &$groups) {
-                foreach ($groups['days'] as $p => &$days) {
-                    foreach ($days['data'] as $t => &$date) {
-                        if (isset($date['value'])) {
-                            unset($date['index']);
-                            foreach ($date['value'] as $j => &$lesson) {
-                                if ($lesson == '*' || $lesson == '**') {
-                                    $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
-                                    unset($date['value'][$j]);
-                                } else {
-                                    $this->sendTimetable($k, $p, $t, $lesson);
-                                }
+            foreach ($groups['days'] as $p => &$days) {
+                foreach ($days['data'] as $t => &$date) {
+                    if (isset($date['value'])) {
+                        unset($date['index']);
+                        foreach ($date['value'] as $j => &$lesson) {
+                            if ($lesson == '*' || $lesson == '**') {
+                                $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
+                                unset($date['value'][$j]);
+                            } else {
+                                $this->sendTimetable($k, $p, $t, $lesson);
                             }
                         }
                     }
                 }
+            }
         }
-        file_put_contents('dataNewNew.json', json_encode($data));
     }
 
     public function dates($value, $row)
@@ -286,17 +285,18 @@ class ex
         $id_type_week = 0;
         $arr = explode('§', $lesson);
         if (isset($arr[1])) {
-            $id_type_week = ($arr[1] == '*') ? 1 : 2 ;
+            $id_type_week = ($arr[1] == '*') ? 1 : 2;
             $lesson = $arr[0];
         }
-        
-        $lesson = preg_replace("/\s{2,}/"," ",$lesson);
-        print_r($id_group." ".$id_day
-        ." ".$id_time." ".$id_type_week." ".$lesson."<br>");
-        $this->query->send($id_group,  $id_day, $id_time, $id_type_week, $lesson);
+
+        $lesson = preg_replace("/\s{2,}/", " ", $lesson);
+        print_r($id_group . " " . $id_day
+            . " " . $id_time . " " . $id_type_week . " " . $lesson . "<br>");
+        $this->query->send($id_group, $id_day, $id_time, $id_type_week, $lesson);
     }
-    
-    public function setQuery() {
+
+    public function setQuery()
+    {
         $this->query = new Query();
     }
 }
