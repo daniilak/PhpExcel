@@ -25,10 +25,10 @@ if (!file_exists("20.xls")) {
 $ex = new ex("20.xls");
 $ex-> setData ();
 echo 'ok setData<br>';
-$ex-> getData ();
-echo 'ok getData<br>';
-$ex-> excel3();
-echo 'ok excel3<br>';
+// $ex-> getData ();
+// echo 'ok getData<br>';
+// $ex-> excel3();
+// echo 'ok excel3<br>';
 
 class ex
 {
@@ -37,7 +37,8 @@ class ex
     protected $tempValueStar = '';
     protected $groups = [];
     protected $lessons = [];
-    protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
+    // protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
+    protected $dates = ['8.20-9.40', '09.55-11.15', '11.30-12.50', '13.20-14.40', '14.55-16.15', '16.30-17.50', '18.05-19.25', '19.40-21.00'];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
         'Понедельник' => ['f' => 0, 't' => 0],
@@ -176,14 +177,14 @@ class ex
                                 $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
                                 unset($date['value'][$j]);
                             } else {
-                                // if (stristr($lesson,'**')) {
-                                //     $lesson = str_replace("**", "", $lesson);
-                                //     $lesson =  $lesson . "§" . '**';
-                                // }
-                                // if (stristr($lesson,'*')) {
-                                //     $lesson = str_replace("*", "", $lesson);
-                                //     $lesson =  $lesson . "§" . '*';
-                                // }  
+                                if (stristr($lesson,'**')) {
+                                    $lesson = str_replace("**", "", $lesson);
+                                    $lesson =  $lesson . "§" . '**';
+                                }
+                                if (stristr($lesson,'*')) {
+                                    $lesson = str_replace("*", "", $lesson);
+                                    $lesson =  $lesson . "§" . '*';
+                                }  
                                 $this->sendTimetable($k, $p, $t, $lesson);
                             }
                         }
@@ -258,6 +259,7 @@ class ex
         if (!isset($groups[$value])) {
             $groups[$value] = [];
             $groups[$value]['f'] = $column;
+            $groups[$value]['t'] = $column;
         } else {
             $groups[$value]['t'] = $column;
         }
