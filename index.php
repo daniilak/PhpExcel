@@ -23,12 +23,12 @@ if (!file_exists("20.xls")) {
 }
 
 $ex = new ex("20.xls");
-// $ex-> setData ();
-// echo 'ok setData<br>';
-// $ex-> getData ();
-// echo 'ok getData<br>';
-$ex-> excel3();
-echo 'ok excel3<br>';
+$ex-> setData ();
+echo 'ok setData<br>';
+$ex-> getData ();
+echo 'ok getData<br>';
+// $ex-> excel3();
+// echo 'ok excel3<br>';
 
 class ex
 {
@@ -37,9 +37,13 @@ class ex
     protected $tempValueStar = '';
     protected $groups = [];
     protected $lessons = [];
+
+
+    // protected $dates = ['8.20 - 9.40', '9.55 - 11.15', '11.30 - 12.50', '13.20 - 14.40', '14.55 - 16.15', '16.30 - 17.50', '18.05 - 19.25', '19:40-21:00'];
     // protected $dates = ['8:20-9:40', '09:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
-     protected $dates = ['8:20-9:40', '9:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
+     // protected $dates = ['8:20-9:40', '9:55-11:15', '11:30-12:50', '13:20-14:40', '14:55-16:15', '16:30-17:50', '18:05-19:25', '19:40-21:00'];
     // protected $dates = ['8.20-9.40', '9.55-11.15', '11.30-12.50', '13.20-14.40', '14.55-16.15', '16.30-17.50', '18.05-19.25', '19.40-21.00'];
+    protected $dates = [8,9,11,13,14,16,18,19];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
         'Понедельник' => ['f' => 0, 't' => 0],
@@ -204,6 +208,14 @@ class ex
             }
             $days[$value]['t'] = $row;
         }
+        $value = intval($value);
+        // $bool = 0;
+        // foreach ($this->dates as $key => $d) {
+        //     if ($value  == $d) {
+        //         $bool = 1;
+        //         break;
+        //     }
+        // }
         if (in_array($value, $this->dates)) {
             foreach ($days as $key => $day) {
                 $a = ($day['t'] == 0) ? 9999 : $day['t'];
@@ -212,6 +224,7 @@ class ex
                         $days[$key]['data'][$value] = [];
                         if (!isset($days[$key]['data'][$value]['f'])) {
                             $days[$key]['data'][$value]['f'] = $row;
+                            $days[$key]['data'][$value]['t'] = $row;
                         }
                     } else {
                         $days[$key]['data'][$value]['t'] = $row;
