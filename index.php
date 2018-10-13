@@ -18,28 +18,22 @@ require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/db.php';
 require_once dirname(__FILE__) . '/query.php';
 
-if (!file_exists("20.xls")) {
-    exit("Please run 14excel5.php first.\n");
-}
-
-$ex = new ex("20.xls");
-$ex-> setData ();
-echo 'ok setData<br>';
-$ex-> getData ();
-echo 'ok getData<br>';
+$ex = new ex("55.xls");
+$ex->setData();
+$ex->getData();
 $ex-> excel3();
-echo 'ok excel3<br>';
 
 class ex
 {
     protected $worksheet;
     protected $data;
+    protected $isSubGroup = 0;
+
     protected $tempValueStar = '';
     protected $groups = [];
     protected $lessons = [];
 
-
-    protected $dates = [8,9,11,13,14,16,18,19];
+    protected $dates = [1, 2, 3, 4, 5, 6, 7, 8];
     protected $daysName = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     protected $days = [
         'Понедельник' => ['f' => 0, 't' => 0],
@@ -67,6 +61,7 @@ class ex
             break;
         }
         $this->save();
+        echo 'ok setData<br>';
     }
 
     public function getData()
@@ -79,6 +74,7 @@ class ex
             break;
         }
         file_put_contents('dataNew.json', json_encode($this->data));
+        echo 'ok getData<br>';
     }
 
     public function save()
@@ -105,7 +101,7 @@ class ex
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
         for ($row = 1; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 0; $column < $columns_count; $column++) {
-                if ($row == 1 || $column < 2) {
+                if ($row <= 2 || $column < 2) {
                     $cell = $worksheet->getCellByColumnAndRow($column, $row);
                     $value = trim($cell->getCalculatedValue());
 
@@ -121,6 +117,9 @@ class ex
                             $this->groups($value, $column);
                         }
 
+                        if ($this->isSubGroup == 1 && $row == 2 && intval($value) != 0) {
+                            $this->subGroup($value, $column);
+                        }
                         if ($column < 2) {
                             $this->dates($value, $row);
                         }
@@ -138,24 +137,32 @@ class ex
         $worksheet = $this->worksheet;
         $columns_count = PHPExcel_Cell::columnIndexFromString($worksheet->getHighestColumn());
 
-        for ($row = 2; $row <= $worksheet->getHighestRow(); $row++) {
+        for ($row = ($this->isSubGroup == 1) ? 3 : 2; $row <= $worksheet->getHighestRow(); $row++) {
             for ($column = 2; $column < $columns_count; $column++) {
 
                 $cell = $worksheet->getCellByColumnAndRow($column, $row);
-                $value = trim($cell->getCalculatedValue());
+                $value = $cell->getCalculatedValue();
                 $guid = '';
+                $startCol = 0;
+                $endCol = 0;
                 foreach ($worksheet->getMergeCells() as $mergedCells) {
                     if ($cell->isInRange($mergedCells)) {
                         $value = $worksheet->getCell(explode(":", $mergedCells)[0])->getCalculatedValue();
                         $guid = $mergedCells;
+                        if ($this->isSubGroup == 1) {
+                            $tmp = explode(":", $mergedCells);
+                            $startCol = 
+                                PHPExcel_Cell::columnIndexFromString( preg_replace('/[0-9]+/', '', $tmp[0])) - 1;
+                            $endCol = 
+                                PHPExcel_Cell::columnIndexFromString( preg_replace('/[0-9]+/', '', $tmp[1])) - 1;
+                        }
                         break;
                     }
                 }
 
                 if (!is_null($value) && $value != "") {
-                    $value = trim($value);
-                    // звезда проставлена слева сверху
-                    $this->lessons($value, $column, $row, $guid);
+                    $value = preg_replace("/\s{2,}/"," ", trim($value));
+                    $this->lessons($value, $column, $row, $guid,$startCol, $endCol);
                 }
             }
         }
@@ -178,22 +185,33 @@ class ex
                                 $date['value'][$j + 1] = $date['value'][$j + 1] . "§" . $lesson;
                                 unset($date['value'][$j]);
                             } else {
-                                // if (stristr($lesson,'**')) {
-                                //     $lesson = str_replace("**", "", $lesson);
-                                //     $lesson =  $lesson . "§" . '**';
-                                // }
-                                // if (stristr($lesson,'*')) {
-                                //     $lesson = str_replace("*", "", $lesson);
-                                //     $lesson =  $lesson . "§" . '*';
-                                // }  
+                                $bool = 0; // 1 - если в одной ячейке 1 звезда и 2 звезды одновременно
+                                if (stristr($lesson, '**')) {
+                                    $tmp = str_replace("**", "", $lesson);
+                                    if (stristr($lesson, '*')) {
+                                        $lesson = $tmp;
+                                        $bool = 1;
+                                    }
+                                }
+                                if ($bool != 1) {
+                                    if (stristr($lesson, '**')) {
+                                        $lesson = str_replace("**", "", $lesson);
+                                        $lesson = $lesson . "§" . '**';
+                                    }
+                                    if (stristr($lesson, '*')) {
+                                        $lesson = str_replace("*", "", $lesson);
+                                        $lesson = $lesson . "§" . '*';
+                                    }
+                                }
+                                $lesson = str_replace("\n", " ", $lesson);
                                 $this->sendTimetable($k, $p, $t, $lesson);
-                                
                             }
                         }
                     }
                 }
             }
         }
+        echo 'ok excel3<br>';
     }
 
     public function dates($value, $row)
@@ -204,6 +222,8 @@ class ex
                 $days[$value]['f'] = $row;
             }
             $days[$value]['t'] = $row;
+            $this->days = $days;
+            return;
         }
         $value = intval($value);
         if (in_array($value, $this->dates)) {
@@ -225,11 +245,19 @@ class ex
         $this->days = $days;
     }
 
-    public function lessons($value, $column, $row, $index = '')
+    public function lessons($value, $column, $row, $index, $startCol = 0, $endCol = 0)
     {
         $data = $this->data;
         foreach ($data as $k => &$groups) {
             if ($groups["f"] <= $column && $column <= $groups["t"]) {
+                if ($this->isSubGroup == 1 && isset($groups['sub'])) {
+                    if ($startCol == $endCol)
+                    foreach ($groups['sub'] as $key => $sub) {
+                        if ($sub == $column) {
+                            $value .= '(' . $key . ' подгруппа)';
+                        }
+                    }
+                }
                 foreach ($groups['days'] as $p => &$days) {
                     if ($days["f"] <= $row && $row <= $days["t"]) {
                         foreach ($days['data'] as $n => &$date) {
@@ -242,8 +270,8 @@ class ex
                                 } else {
                                     $date['value'] = [];
                                     $date['index'] = [];
-                                    $date['value'][] = $value;
                                     $date['index'][] = $index;
+                                    $date['value'][] = $value;
                                 }
                                 break;
                             }
@@ -255,6 +283,19 @@ class ex
             }
         }
         $this->data = $data;
+    }
+
+    public function subGroup($value, $column)
+    {
+        $groups = $this->groups;
+        foreach ($groups as &$group) {
+            if ($group["f"] <= $column && $column <= $group["t"]) {
+                $group['sub'][$value] = $column;
+                break;
+            }
+        }
+        $this->groups = $groups;
+        return true;
     }
 
     public function groups($value, $column)
@@ -271,31 +312,11 @@ class ex
         return true;
     }
 
-    //не юзаем
-    public function subGroups($value, $column)
-    {
-        $groups = $this->groups;
-        foreach ($groups as $n => &$group) {
-            if ($group["f"] <= $column && $column <= $group["t"]) {
-                if (!isset($group['index'][$value])) {
-                    $group['index'][$value] = [];
-                    $group['index'][$value]['f'] = $column;
-                } else {
-                    $group['index'][$value]['t'] = $column;
-                }
-                break;
-            }
-        }
-        $this->groups = $groups;
-        return true;
-    }
-
     //name_group, id_subgroup || X, name_day, name_time, lesson by format:
     public function sendTimetable($name_group, $name_day, $name_time, $lesson)
     {
         $id_group = $this->query->getIdGroup($name_group);
         $id_day = array_search($name_day, $this->daysName);
-        $id_time = array_search($name_time, $this->dates);
         $id_type_week = 0;
         $arr = explode('§', $lesson);
         if (isset($arr[1])) {
@@ -304,9 +325,7 @@ class ex
         }
 
         $lesson = preg_replace("/\s{2,}/", " ", $lesson);
-        print_r($id_group . " " . $id_day
-            . " " . $id_time . " " . $id_type_week . " " . $lesson . "<br>");
-        $this->query->send($id_group, $id_day, $id_time, $id_type_week, $lesson);
+        $this->query->send($id_group, $id_day, $name_time, $id_type_week, $lesson);
     }
 
     public function setQuery()

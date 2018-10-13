@@ -42,7 +42,7 @@ class Query {
 
   public function send($id_group, $id_day, $id_time, $id_type_week, $lesson) {
 		$from = '2018-08-20';
-    $to   = '2018-12-30';
+    $to   = '2018-12-23';
     switch (intval($id_type_week)) {
       case 0:
         $from = '2018-08-27';
@@ -55,7 +55,6 @@ class Query {
       break;
     }
     $id_day = $id_day + 1;
-    $guid = $this->getNewVersion();
     while ($from < $to) 
     { 
       switch (intval($id_type_week)) 
@@ -74,20 +73,18 @@ class Query {
       $stmt = DataBase::query()->
         prepare("
           INSERT INTO `timetable`
-          (`GUID`, `id_group`,`date`,`type`,`day`,`string`,`time_id`)
-          VALUES (?,?,?,?,?,?,?)
+          (`id_group`,`date`,`type`,`day`,`string`,`time_id`)
+          VALUES (?,?,?,?,?,?)
         ");
-        $stmt->bindValue(1,  $guid, PDO::PARAM_STR);
-        $stmt->bindValue(2,  $id_group, PDO::PARAM_INT);
-        $stmt->bindValue(3,  $date, PDO::PARAM_STR);
-        $stmt->bindValue(4,  $id_type_week, PDO::PARAM_INT);
-        $stmt->bindValue(5,  $id_day, PDO::PARAM_INT);
-        $stmt->bindValue(6,  $lesson, PDO::PARAM_STR);
-        $stmt->bindValue(7,  $id_time, PDO::PARAM_INT);
+        $stmt->bindValue(1,  $id_group, PDO::PARAM_INT);
+        $stmt->bindValue(2,  $date, PDO::PARAM_STR);
+        $stmt->bindValue(3,  $id_type_week, PDO::PARAM_INT);
+        $stmt->bindValue(4,  $id_day, PDO::PARAM_INT);
+        $stmt->bindValue(5,  $lesson, PDO::PARAM_STR);
+        $stmt->bindValue(6,  $id_time, PDO::PARAM_INT);
         $stmt->execute();
-        $this->updateVersion($id_group);
       }
-    
+      $this->updateVersion($id_group);
   }
   public function updateVersion($id_group) {
     $stmt = DataBase::query()->

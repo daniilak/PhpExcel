@@ -1,2 +1,4 @@
 *.txt
+*.xls
+*.json
 config.php
